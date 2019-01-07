@@ -5,6 +5,9 @@
 
 package controllers
 
+import akka.actor.ActorSystem
+import play.api.libs.json.Json
+//import com.google.common.util.concurrent.AbstractScheduledService.Scheduler
 import features.{ApplicationFeatures, KMPreferredReplicaElectionFeature}
 import kafka.manager.ApiError
 import kafka.manager.features.ClusterFeatures
@@ -18,7 +21,9 @@ import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc._
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scalaz.-\/
+//import scalaz.concurrent.Task
 
 /**
  * @author hiral
@@ -82,6 +87,22 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
               FollowLink("Back to preferred replica election.", routes.PreferredReplicaElection.preferredReplicaElection(c).toString())
             )).withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
         }
+      )
+    }
+  }
+
+  def scheduleRunElection(c: String) = Action.async { implicit request =>
+    kafkaManager.getTopicList(c).flatMap { errorOrTopicList =>
+      errorOrTopicList.fold({ e =>
+        Future.successful(-\/(e))
+      }, { topicList =>
+        kafkaManager.schedulePreferredLeaderElection(c, topicList.list.toSet, 5)
+      })
+    }
+    kafkaManager.getTopicList(c).map { errorOrTopicList =>
+      errorOrTopicList.fold(
+        error => BadRequest(Json.obj("msg" -> error.msg)),
+        topicList => Ok(Json.obj("topics" -> topicList.list.sorted)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
       )
     }
   }

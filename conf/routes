@@ -21,6 +21,7 @@ GET    /clusters/:c/consumers/:g/type/:ct                   controllers.Consumer
 GET    /clusters/:c/consumers/:g/topic/:t/type/:ct          controllers.Consumer.consumerAndTopic(c: String, g:String, t:String, ct: String)
 GET    /clusters/:c/leader                                  controllers.PreferredReplicaElection.preferredReplicaElection(c:String)
 POST   /clusters/:c/leader                                  controllers.PreferredReplicaElection.handleRunElection(c:String)
+POST   /clusters/:c/leader/schedule                         controllers.PreferredReplicaElection.scheduleRunElection(c:String)
 GET    /clusters/:c/assignment                              controllers.ReassignPartitions.reassignPartitions(c:String)
 POST   /clusters/:c/assignment                              controllers.ReassignPartitions.handleOperation(c:String,t:String)
 GET    /clusters/:c/assignment/confirm                      controllers.ReassignPartitions.confirmAssignment(c:String,t:String)

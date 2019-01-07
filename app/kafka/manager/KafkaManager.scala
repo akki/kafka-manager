@@ -360,6 +360,15 @@ class KafkaManager(akkaConfig: Config) extends Logging {
     }
   }
 
+  def schedulePreferredLeaderElection(clusterName: String, topics: Set[String], timeIntervalSeconds: Int): Future[ApiError \/ ClusterContext] = {
+    implicit val ec = apiExecutionContext
+
+    system.scheduler.schedule(Duration(timeIntervalSeconds, TimeUnit.SECONDS), Duration(timeIntervalSeconds, TimeUnit.SECONDS)) {
+      runPreferredLeaderElection(clusterName, topics)
+    }
+    runPreferredLeaderElection(clusterName, topics)
+  }
+
   def manualPartitionAssignments(clusterName: String,
                                  assignments: List[(String, List[(Int, List[Int])])]) = {
     implicit val ec = apiExecutionContext
