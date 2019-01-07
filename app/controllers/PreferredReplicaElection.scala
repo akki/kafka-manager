@@ -5,9 +5,7 @@
 
 package controllers
 
-import akka.actor.ActorSystem
 import play.api.libs.json.Json
-//import com.google.common.util.concurrent.AbstractScheduledService.Scheduler
 import features.{ApplicationFeatures, KMPreferredReplicaElectionFeature}
 import kafka.manager.ApiError
 import kafka.manager.features.ClusterFeatures
@@ -21,9 +19,7 @@ import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc._
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scalaz.-\/
-//import scalaz.concurrent.Task
 
 /**
  * @author hiral
