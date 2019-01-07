@@ -106,4 +106,14 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
       )
     }
   }
+
+  def cancelRunElection(c: String) = Action.async { implicit request =>
+    kafkaManager.cancelPreferredLeaderElection(c)
+    kafkaManager.getTopicList(c).map { errorOrTopicList =>
+      errorOrTopicList.fold(
+        error => BadRequest(Json.obj("msg" -> error.msg)),
+        topicList => Ok(Json.obj("status" -> "stopped")).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
+      )
+    }
+  }
 }

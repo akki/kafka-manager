@@ -8,7 +8,7 @@ package kafka.manager
 import java.util.Properties
 import java.util.concurrent.{LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit}
 
-import akka.actor.{ActorPath, ActorSystem, Props}
+import akka.actor.{ActorPath, ActorSystem, Cancellable, Props}
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
 import grizzled.slf4j.Logging
@@ -121,6 +121,7 @@ import akka.pattern._
 import scalaz.{-\/, \/, \/-}
 class KafkaManager(akkaConfig: Config) extends Logging {
   private[this] val system = ActorSystem("kafka-manager-system", akkaConfig)
+  private[this] var pleCancellable : Option[Cancellable] = None
 
   private[this] val configWithDefaults = akkaConfig.withFallback(DefaultConfig)
   val defaultTuning = ClusterTuning(
@@ -363,10 +364,23 @@ class KafkaManager(akkaConfig: Config) extends Logging {
   def schedulePreferredLeaderElection(clusterName: String, topics: Set[String], timeIntervalSeconds: Int): Future[ApiError \/ ClusterContext] = {
     implicit val ec = apiExecutionContext
 
-    system.scheduler.schedule(Duration(timeIntervalSeconds, TimeUnit.SECONDS), Duration(timeIntervalSeconds, TimeUnit.SECONDS)) {
-      runPreferredLeaderElection(clusterName, topics)
+    if(pleCancellable.isEmpty){
+      pleCancellable = Some(
+        system.scheduler.schedule(Duration(timeIntervalSeconds, TimeUnit.SECONDS), Duration(timeIntervalSeconds, TimeUnit.SECONDS)) {
+          runPreferredLeaderElection(clusterName, topics)
+        }
+      )
     }
     runPreferredLeaderElection(clusterName, topics)
+  }
+
+  def cancelPreferredLeaderElection(clusterName: String): Future[ApiError \/ ClusterContext] = {
+    implicit val ec = apiExecutionContext
+
+    if(pleCancellable.isDefined) {
+       pleCancellable.map(_.cancel())
+    }
+    runPreferredLeaderElection(clusterName, Set())
   }
 
   def manualPartitionAssignments(clusterName: String,
