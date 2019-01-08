@@ -361,26 +361,32 @@ class KafkaManager(akkaConfig: Config) extends Logging {
     }
   }
 
-  def schedulePreferredLeaderElection(clusterName: String, topics: Set[String], timeIntervalSeconds: Int): Future[ApiError \/ ClusterContext] = {
+  def schedulePreferredLeaderElection(clusterName: String, topics: Set[String], timeIntervalSeconds: Int): Future[String] = {
     implicit val ec = apiExecutionContext
 
     if(pleCancellable.isEmpty){
       pleCancellable = Some(
-        system.scheduler.schedule(Duration(timeIntervalSeconds, TimeUnit.SECONDS), Duration(timeIntervalSeconds, TimeUnit.SECONDS)) {
+        system.scheduler.schedule(0 seconds, Duration(timeIntervalSeconds, TimeUnit.SECONDS)) {
           runPreferredLeaderElection(clusterName, topics)
         }
       )
+      Future("Scheduler started")
     }
-    runPreferredLeaderElection(clusterName, topics)
+    else{
+      Future("Scheduler already scheduled")
+    }
   }
 
-  def cancelPreferredLeaderElection(clusterName: String): Future[ApiError \/ ClusterContext] = {
+  def cancelPreferredLeaderElection(clusterName: String): Future[String] = {
     implicit val ec = apiExecutionContext
 
     if(pleCancellable.isDefined) {
        pleCancellable.map(_.cancel())
+      Future("Scheduler stopped")
     }
-    runPreferredLeaderElection(clusterName, Set())
+    else{
+      Future("Scheduler already not running")
+    }
   }
 
   def manualPartitionAssignments(clusterName: String,

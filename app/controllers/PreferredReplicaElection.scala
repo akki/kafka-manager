@@ -88,28 +88,18 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
   }
 
   def scheduleRunElection(c: String) = Action.async { implicit request =>
-    kafkaManager.getTopicList(c).flatMap { errorOrTopicList =>
+    val status = kafkaManager.getTopicList(c).flatMap { errorOrTopicList =>
       errorOrTopicList.fold({ e =>
         Future.successful(-\/(e))
       }, { topicList =>
         kafkaManager.schedulePreferredLeaderElection(c, topicList.list.toSet, 5)
       })
     }
-    kafkaManager.getTopicList(c).map { errorOrTopicList =>
-      errorOrTopicList.fold(
-        error => BadRequest(Json.obj("msg" -> error.msg)),
-        topicList => Ok(Json.obj("topics" -> topicList.list.sorted)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
-      )
-    }
+    status.map(s => Ok(Json.obj("message" -> s.toString)).withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
   }
 
   def cancelRunElection(c: String) = Action.async { implicit request =>
-    kafkaManager.cancelPreferredLeaderElection(c)
-    kafkaManager.getTopicList(c).map { errorOrTopicList =>
-      errorOrTopicList.fold(
-        error => BadRequest(Json.obj("msg" -> error.msg)),
-        topicList => Ok(Json.obj("status" -> "stopped")).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
-      )
-    }
+    val status = kafkaManager.cancelPreferredLeaderElection(c)
+    status.map(s => Ok(Json.obj("message" -> s.toString)).withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
   }
 }
