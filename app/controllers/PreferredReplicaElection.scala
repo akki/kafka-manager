@@ -87,7 +87,7 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
     }
   }
 
-  def scheduleRunElection(c: String) = Action.async { implicit request =>
+  def handleScheduleRunElectionAPI(c: String) = Action.async { implicit request =>
     val status = kafkaManager.getTopicList(c).flatMap { errorOrTopicList =>
       errorOrTopicList.fold({ e =>
         Future.successful(-\/(e))
@@ -98,8 +98,34 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
     status.map(s => Ok(Json.obj("message" -> s.toString)).withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
   }
 
-  def cancelRunElection(c: String) = Action.async { implicit request =>
+  def cancelScheduleRunElectionAPI(c: String) = Action.async { implicit request =>
     val status = kafkaManager.cancelPreferredLeaderElection(c)
     status.map(s => Ok(Json.obj("message" -> s.toString)).withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
+  }
+
+  def scheduleRunElection(c: String) = Action.async { implicit request =>
+    kafkaManager.getReassignPartitions(c).map { errorOrStatus =>
+      Ok(views.html.scheduleLeaderElection(c,errorOrStatus, "Dekhte hai kya karna hai")).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
+    }
+  }
+
+  def handleScheduleRunElection(c: String) = Action.async { implicit request =>
+    val status = kafkaManager.getTopicList(c).flatMap { errorOrTopicList =>
+      errorOrTopicList.fold({ e =>
+        Future.successful(-\/(e))
+      }, { topicList =>
+        kafkaManager.schedulePreferredLeaderElection(c, topicList.list.toSet, 5)
+      })
+    }
+    kafkaManager.getReassignPartitions(c).map { errorOrStatus =>
+      Ok(views.html.scheduleLeaderElection(c,errorOrStatus,status.toString)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
+    }
+  }
+
+  def cancelScheduleRunElection(c: String) = Action.async { implicit request =>
+    val status = kafkaManager.cancelPreferredLeaderElection(c)
+    kafkaManager.getReassignPartitions(c).map { errorOrStatus =>
+      Ok(views.html.scheduleLeaderElection(c,errorOrStatus,status.toString)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
+    }
   }
 }

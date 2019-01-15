@@ -89,7 +89,7 @@ operationForm: Form[models.form.PreferredReplicaElectionOperation]
     }
     </div>
     <div>
-    @b3.form(routes.PreferredReplicaElection.cancelRunElection(cluster)) {
+    @b3.form(routes.PreferredReplicaElection.cancelScheduleRunElection(cluster)) {
         <fieldset>
         @b3.submit('class -> "btn btn-primary"){ Cancel Preferred Replica Election }
         </fieldset>
