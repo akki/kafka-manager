@@ -381,7 +381,7 @@ class KafkaManager(akkaConfig: Config) extends Logging {
     implicit val ec = apiExecutionContext
 
     if(pleCancellable.isDefined) {
-       pleCancellable.map(_.cancel())
+      pleCancellable.map(_.cancel())
       Future("Scheduler stopped")
     }
     else{
