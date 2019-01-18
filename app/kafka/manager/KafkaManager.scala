@@ -121,7 +121,7 @@ import akka.pattern._
 import scalaz.{-\/, \/, \/-}
 class KafkaManager(akkaConfig: Config) extends Logging {
   private[this] val system = ActorSystem("kafka-manager-system", akkaConfig)
-  private[this] var pleCancellable : Option[Cancellable] = None
+  var pleCancellable : Option[Cancellable] = None
 
   private[this] val configWithDefaults = akkaConfig.withFallback(DefaultConfig)
   val defaultTuning = ClusterTuning(
@@ -364,29 +364,20 @@ class KafkaManager(akkaConfig: Config) extends Logging {
   def schedulePreferredLeaderElection(clusterName: String, topics: Set[String], timeIntervalSeconds: Int): Future[String] = {
     implicit val ec = apiExecutionContext
 
-    if(pleCancellable.isEmpty){
-      pleCancellable = Some(
-        system.scheduler.schedule(0 seconds, Duration(timeIntervalSeconds, TimeUnit.SECONDS)) {
-          runPreferredLeaderElection(clusterName, topics)
-        }
-      )
-      Future("Scheduler started")
-    }
-    else{
-      Future("Scheduler already scheduled")
-    }
+    pleCancellable = Some(
+      system.scheduler.schedule(0 seconds, Duration(timeIntervalSeconds, TimeUnit.SECONDS)) {
+        runPreferredLeaderElection(clusterName, topics)
+      }
+    )
+    Future("Scheduler started")
   }
 
   def cancelPreferredLeaderElection(clusterName: String): Future[String] = {
     implicit val ec = apiExecutionContext
 
-    if(pleCancellable.isDefined) {
-      pleCancellable.map(_.cancel())
-      Future("Scheduler stopped")
-    }
-    else{
-      Future("Scheduler already not running")
-    }
+    pleCancellable.map(_.cancel())
+    pleCancellable = None
+    Future("Scheduler stopped")
   }
 
   def manualPartitionAssignments(clusterName: String,

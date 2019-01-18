@@ -104,28 +104,50 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
   }
 
   def scheduleRunElection(c: String) = Action.async { implicit request =>
-    kafkaManager.getReassignPartitions(c).map { errorOrStatus =>
-      Ok(views.html.scheduleLeaderElection(c,errorOrStatus, "Dekhte hai kya karna hai")).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
+    var status_string: String = ""
+    if(kafkaManager.pleCancellable.isDefined){
+      status_string = "Scheduler is running"
+    }
+    else {
+      status_string = "Scheduler is not running"
+    }
+    kafkaManager.getTopicList(c).map { errorOrStatus =>
+      Ok(views.html.scheduleLeaderElection(c,errorOrStatus, status_string)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
     }
   }
 
   def handleScheduleRunElection(c: String) = Action.async { implicit request =>
-    val status = kafkaManager.getTopicList(c).flatMap { errorOrTopicList =>
-      errorOrTopicList.fold({ e =>
-        Future.successful(-\/(e))
-      }, { topicList =>
-        kafkaManager.schedulePreferredLeaderElection(c, topicList.list.toSet, 5)
-      })
+    var status_string: String = ""
+
+    if(kafkaManager.pleCancellable.isEmpty){
+      kafkaManager.getTopicList(c).flatMap { errorOrTopicList =>
+        errorOrTopicList.fold({ e =>
+          Future.successful(-\/(e))
+        }, { topicList =>
+          kafkaManager.schedulePreferredLeaderElection(c, topicList.list.toSet, 5)
+        })
+      }
+      status_string = "Scheduler started"
     }
-    kafkaManager.getReassignPartitions(c).map { errorOrStatus =>
-      Ok(views.html.scheduleLeaderElection(c,errorOrStatus,status.toString)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
+    else{
+      status_string = "Scheduler already scheduled"
+    }
+    kafkaManager.getTopicList(c).map { errorOrStatus =>
+      Ok(views.html.scheduleLeaderElection(c, errorOrStatus, status_string)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
     }
   }
 
   def cancelScheduleRunElection(c: String) = Action.async { implicit request =>
-    val status = kafkaManager.cancelPreferredLeaderElection(c)
-    kafkaManager.getReassignPartitions(c).map { errorOrStatus =>
-      Ok(views.html.scheduleLeaderElection(c,errorOrStatus,status.toString)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
+    var status_string: String = ""
+    if(kafkaManager.pleCancellable.isDefined){
+      kafkaManager.cancelPreferredLeaderElection(c)
+      status_string = "Scheduler stopped"
+    }
+    else {
+      status_string = "Scheduler already not running"
+    }
+    kafkaManager.getTopicList(c).map { errorOrStatus =>
+      Ok(views.html.scheduleLeaderElection(c,errorOrStatus,status_string)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
     }
   }
 }
