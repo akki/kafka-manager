@@ -121,7 +121,8 @@ import akka.pattern._
 import scalaz.{-\/, \/, \/-}
 class KafkaManager(akkaConfig: Config) extends Logging {
   private[this] val system = ActorSystem("kafka-manager-system", akkaConfig)
-  var pleCancellable : Option[Cancellable] = None
+  // Contains a key for each cluster which has preferred leader election scheduled
+  var pleCancellable : Map[String, Option[Cancellable]] = Map.empty
 
   private[this] val configWithDefaults = akkaConfig.withFallback(DefaultConfig)
   val defaultTuning = ClusterTuning(
@@ -364,19 +365,19 @@ class KafkaManager(akkaConfig: Config) extends Logging {
   def schedulePreferredLeaderElection(clusterName: String, topics: Set[String], timeIntervalMinutes: Int): Future[String] = {
     implicit val ec = apiExecutionContext
 
-    pleCancellable = Some(
+    pleCancellable += (clusterName -> Some(
       system.scheduler.schedule(0 seconds, Duration(timeIntervalMinutes, TimeUnit.MINUTES)) {
         runPreferredLeaderElection(clusterName, topics)
       }
-    )
+    ))
     Future("Scheduler started")
   }
 
   def cancelPreferredLeaderElection(clusterName: String): Future[String] = {
     implicit val ec = apiExecutionContext
 
-    pleCancellable.map(_.cancel())
-    pleCancellable = None
+    pleCancellable(clusterName).map(_.cancel())
+    pleCancellable -= clusterName
     Future("Scheduler stopped")
   }
 

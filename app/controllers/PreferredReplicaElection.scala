@@ -106,7 +106,7 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
   def scheduleRunElection(c: String) = Action.async { implicit request =>
     var status_string: String = ""
     var showForm: String = ""
-    if(kafkaManager.pleCancellable.isDefined){
+    if(kafkaManager.pleCancellable.contains(c)){
       status_string = "Scheduler is running"
       showForm = "Cancel"
     }
@@ -121,9 +121,8 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
 
   def handleScheduleRunElection(c: String) = Action.async { implicit request =>
     var status_string: String = ""
-    var showButton: String = ""
     val timeIntervalMinutes = request.body.asFormUrlEncoded.get("timePeriod")(0).toInt
-    if(kafkaManager.pleCancellable.isEmpty){
+    if(!kafkaManager.pleCancellable.contains(c)){
       kafkaManager.getTopicList(c).flatMap { errorOrTopicList =>
         errorOrTopicList.fold({ e =>
           Future.successful(-\/(e))
@@ -143,7 +142,7 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
 
   def cancelScheduleRunElection(c: String) = Action.async { implicit request =>
     var status_string: String = ""
-    if(kafkaManager.pleCancellable.isDefined){
+    if(kafkaManager.pleCancellable.contains(c)){
       kafkaManager.cancelPreferredLeaderElection(c)
       status_string = "Scheduler stopped"
     }
