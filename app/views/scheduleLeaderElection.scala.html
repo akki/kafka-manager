@@ -4,7 +4,7 @@
 *@
 @import scalaz.{\/}
 @import b3.vertical.fieldConstructor
-@(cluster:String, errorOrStatus: kafka.manager.ApiError \/ kafka.manager.model.ActorModel.TopicList, status: String
+@(cluster:String, errorOrStatus: kafka.manager.ApiError \/ kafka.manager.model.ActorModel.TopicList, status: String, showForm: String
 )(implicit af: features.ApplicationFeatures, messages: play.api.i18n.Messages, menus: models.navigation.Menus)
 
 @theMenu = {
@@ -19,18 +19,22 @@
     <div class="col-md-6 un-pad-me">
         <div class="panel panel-default">
             <div class="panel-heading"><h3>Schedule Leader Election</h3></div>
-            <div class="col-md-12">
+            <div class="col-md-6">
                 @features.app(features.KMScheduleLeaderElectionFeature) {
-                    <div class="row">
-                    @b3.form(routes.PreferredReplicaElection.handleScheduleRunElection(cluster)) {
-                        <fieldset>
-                        @b3.submit('class -> "btn btn-primary"){ Schedule Preferred Replica Election }
-                        </fieldset>
-                    }
-                    @b3.form(routes.PreferredReplicaElection.cancelScheduleRunElection(cluster)) {
-                        <fieldset>
-                        @b3.submit('class -> "btn btn-primary"){ Cancel Preferred Replica Election }
-                        </fieldset>
+                    <div>
+                    @if(showForm == "Schedule") {
+                        @b3.form(routes.PreferredReplicaElection.handleScheduleRunElection(cluster)) {
+                            <input type="number" name="timePeriod" class="form-control col-md-8" placeholder="Time for scheduling (in min)" required />
+                            <fieldset>
+                            @b3.submit('class -> "btn btn-primary"){ Schedule Preferred Replica Election }
+                            </fieldset>
+                        }
+                    } else {
+                        @b3.form(routes.PreferredReplicaElection.cancelScheduleRunElection(cluster)) {
+                            <fieldset>
+                            @b3.submit('class -> "btn btn-primary"){ Cancel Preferred Replica Election }
+                            </fieldset>
+                        }
                     }
                     </div>
                 }
@@ -45,5 +49,4 @@
         </div>
     </div>
 }
-
 

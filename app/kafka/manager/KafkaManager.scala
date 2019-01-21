@@ -361,11 +361,11 @@ class KafkaManager(akkaConfig: Config) extends Logging {
     }
   }
 
-  def schedulePreferredLeaderElection(clusterName: String, topics: Set[String], timeIntervalSeconds: Int): Future[String] = {
+  def schedulePreferredLeaderElection(clusterName: String, topics: Set[String], timeIntervalMinutes: Int): Future[String] = {
     implicit val ec = apiExecutionContext
 
     pleCancellable = Some(
-      system.scheduler.schedule(0 seconds, Duration(timeIntervalSeconds, TimeUnit.SECONDS)) {
+      system.scheduler.schedule(0 seconds, Duration(timeIntervalMinutes, TimeUnit.MINUTES)) {
         runPreferredLeaderElection(clusterName, topics)
       }
     )
