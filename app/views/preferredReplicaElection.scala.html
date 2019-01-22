@@ -74,26 +74,12 @@ operationForm: Form[models.form.PreferredReplicaElectionOperation]
                         <input type="hidden" name="operation" value="run">
                         @b3.submit('class -> "btn btn-primary"){ Run Preferred Replica Election }
                     </fieldset>
-                }
+                    }
                 </div>
             }
 
             @errorOrStatus.fold[Html](views.html.errors.onApiError(_), renderView(cluster, _))
         </div>
-    </div>
-    <div>
-    @b3.form(routes.PreferredReplicaElection.scheduleRunElection(cluster)) {
-        <fieldset>
-        @b3.submit('class -> "btn btn-primary"){ Schedule Preferred Replica Election }
-        </fieldset>
-    }
-    </div>
-    <div>
-    @b3.form(routes.PreferredReplicaElection.cancelScheduleRunElection(cluster)) {
-        <fieldset>
-        @b3.submit('class -> "btn btn-primary"){ Cancel Preferred Replica Election }
-        </fieldset>
-    }
     </div>
 </div>
 
