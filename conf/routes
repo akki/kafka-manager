@@ -23,6 +23,7 @@ GET    /clusters/:c/leader                                  controllers.Preferre
 POST   /clusters/:c/leader                                  controllers.PreferredReplicaElection.handleRunElection(c:String)
 GET    /clusters/:c/leader/schedule                         controllers.PreferredReplicaElection.scheduleRunElection(c:String)
 POST   /clusters/:c/leader/schedule                         controllers.PreferredReplicaElection.handleScheduleRunElection(c:String)
+GET    /clusters/:c/leader/schedule/cancel                  controllers.PreferredReplicaElection.scheduleRunElection(c:String)
 POST   /clusters/:c/leader/schedule/cancel                  controllers.PreferredReplicaElection.cancelScheduleRunElection(c:String)
 GET    /clusters/:c/assignment                              controllers.ReassignPartitions.reassignPartitions(c:String)
 POST   /clusters/:c/assignment                              controllers.ReassignPartitions.handleOperation(c:String,t:String)
