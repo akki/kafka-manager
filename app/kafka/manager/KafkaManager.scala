@@ -7,6 +7,7 @@ package kafka.manager
 
 import java.util.Properties
 import java.util.concurrent.{LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit}
+import org.json4s.jackson.JsonMethods.parse
 
 import akka.actor.{ActorPath, ActorSystem, Cancellable, Props}
 import akka.util.Timeout
@@ -121,8 +122,6 @@ import akka.pattern._
 import scalaz.{-\/, \/, \/-}
 class KafkaManager(akkaConfig: Config) extends Logging {
   private[this] val system = ActorSystem("kafka-manager-system", akkaConfig)
-  // Contains a key for each cluster which has preferred leader election scheduled
-  var pleCancellable : Map[String, Option[Cancellable]] = Map.empty
 
   private[this] val configWithDefaults = akkaConfig.withFallback(DefaultConfig)
   val defaultTuning = ClusterTuning(
@@ -362,22 +361,42 @@ class KafkaManager(akkaConfig: Config) extends Logging {
     }
   }
 
+  def updateSchedulePreferredLeaderElection(clusterName: String): Unit = {
+    system.actorSelection(kafkaManagerActor).ask(KMClusterCommandRequest(
+      clusterName,
+      CMSchedulePreferredLeaderElection(
+        pleCancellable map { case (key, value) => (key, value._2) }
+      )
+    ))
+  }
+
   def schedulePreferredLeaderElection(clusterName: String, topics: Set[String], timeIntervalMinutes: Int): Future[String] = {
     implicit val ec = apiExecutionContext
 
-    pleCancellable += (clusterName -> Some(
+    var topics: Set[String] = Set()
+    if(topics.isEmpty){
+      system.actorSelection(kafkaManagerActor).ask(
+        KMClusterQueryRequest(clusterName, KSGetTopics)
+      ).foreach { topicList =>
+        topics = List(topicList.toString).toSet
+      }
+    }
+    pleCancellable += (clusterName -> (Some(
       system.scheduler.schedule(0 seconds, Duration(timeIntervalMinutes, TimeUnit.MINUTES)) {
         runPreferredLeaderElection(clusterName, topics)
       }
-    ))
+    ), timeIntervalMinutes))
+    updateSchedulePreferredLeaderElection(clusterName)
+
     Future("Scheduler started")
   }
 
   def cancelPreferredLeaderElection(clusterName: String): Future[String] = {
     implicit val ec = apiExecutionContext
 
-    pleCancellable(clusterName).map(_.cancel())
+    pleCancellable(clusterName)._1.map(_.cancel())
     pleCancellable -= clusterName
+    updateSchedulePreferredLeaderElection(clusterName)
     Future("Scheduler stopped")
   }
 
@@ -931,4 +950,27 @@ class KafkaManager(akkaConfig: Config) extends Logging {
       )
     }
   }
+
+  def initialiseSchedulePreferredLeaderElection(): Unit = {
+    implicit val ec = apiExecutionContext
+
+    var temp: Map[String, Int] = Map.empty
+    val x = system.actorSelection(kafkaManagerActor).ask(KSGetScheduleLeaderElection)
+    x.foreach { schedule =>
+      implicit val formats = org.json4s.DefaultFormats
+
+      temp = parse(schedule.toString).extract[Map[String, Int]]
+      for ((cluster, timeInterval) <- temp) {
+        schedulePreferredLeaderElection(cluster, Set(), timeInterval)
+      }
+    }
+  }
+
+  // Contains a key for each cluster (by its name) which has preferred leader election scheduled
+  // Value of each key is a 2-tuple where
+  //// first element is the scheduler's cancellable object - required for cancelling the schedule
+  //// second element is the time interval for scheduling (in minutes) - required for storing in ZK
+  var pleCancellable : Map[String, (Option[Cancellable], Int)] = Map.empty
+  initialiseSchedulePreferredLeaderElection()
+
 }

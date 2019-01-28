@@ -10,7 +10,7 @@ import kafka.manager.base.{LongRunningPoolActor, LongRunningPoolConfig}
 import kafka.manager.features.KMDeleteTopicFeature
 import kafka.manager.model.ActorModel._
 import kafka.manager.model.ClusterContext
-import kafka.manager.utils.zero81.{PreferredReplicaLeaderElectionCommand, ReassignPartitionCommand}
+import kafka.manager.utils.zero81.{PreferredReplicaLeaderElectionCommand, ReassignPartitionCommand, SchedulePreferredLeaderElectionCommand}
 import kafka.manager.utils.{AdminUtils, ZkUtils}
 import org.apache.curator.framework.CuratorFramework
 
