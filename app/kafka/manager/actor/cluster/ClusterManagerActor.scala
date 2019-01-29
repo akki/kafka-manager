@@ -354,7 +354,7 @@ class ClusterManagerActor(cmConfig: ClusterManagerActorConfig)
     }
   }
 
-  private def writeScheduleLeaderElectionToZk(schedule: Map[String, Int]) = {
+  private def writeScheduleLeaderElectionToZk(schedule: Map[String, (Set[String], Int)]) = {
     implicit val ec = longRunningExecutionContext
 
     log.info("Updating schedule for preferred leader election")
