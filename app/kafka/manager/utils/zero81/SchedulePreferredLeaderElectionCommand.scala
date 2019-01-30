@@ -23,7 +23,7 @@ import org.apache.curator.framework.CuratorFramework
 
 object SchedulePreferredLeaderElectionCommand extends Logging {
 
-  def writeScheduleLeaderElectionData(curator: CuratorFramework, schedule: Map[String, (Set[String], Int)]): Unit = {
+  def writeScheduleLeaderElectionData(curator: CuratorFramework, schedule: Map[String, Int]): Unit = {
     val jsonData = toJson(schedule)
 
     ZkUtils.updatePersistentPath(curator, ZkUtils.SchedulePreferredLeaderElectionPath, jsonData)

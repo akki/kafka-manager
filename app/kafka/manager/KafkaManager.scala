@@ -361,6 +361,14 @@ class KafkaManager(akkaConfig: Config) extends Logging {
     }
   }
 
+  def runPreferredLeaderElectionWithAllTopics(clusterName: String) = {
+    implicit val ec = apiExecutionContext
+
+    system.actorSelection(kafkaManagerActor).ask(KMClusterQueryRequest(clusterName, KSGetTopics)).map { t =>
+      runPreferredLeaderElection(clusterName, List(t.toString).toSet)
+    }
+  }
+
   def updateSchedulePreferredLeaderElection(clusterName: String): Unit = {
     system.actorSelection(kafkaManagerActor).ask(KMClusterCommandRequest(
       clusterName,
@@ -377,10 +385,10 @@ class KafkaManager(akkaConfig: Config) extends Logging {
       (
           Some(
           system.scheduler.schedule(0 seconds, Duration(timeIntervalMinutes, TimeUnit.MINUTES)) {
-            runPreferredLeaderElection(clusterName, topics)
+            runPreferredLeaderElectionWithAllTopics(clusterName)
           }
         ),
-        (topics, timeIntervalMinutes)
+        timeIntervalMinutes
       )
     )
     updateSchedulePreferredLeaderElection(clusterName)
@@ -951,14 +959,14 @@ class KafkaManager(akkaConfig: Config) extends Logging {
   def initialiseSchedulePreferredLeaderElection(): Unit = {
     implicit val ec = apiExecutionContext
 
-    var temp: Map[String, (Set[String], Int)] = Map.empty
+    var temp: Map[String, Int] = Map.empty
     val x = system.actorSelection(kafkaManagerActor).ask(KSGetScheduleLeaderElection)
     x.foreach { schedule =>
       implicit val formats = org.json4s.DefaultFormats
 
-      temp = parse(schedule.toString).extract[Map[String, (Set[String], Int)]]
-      for ((cluster, (topics, timeInterval)) <- temp) {
-        schedulePreferredLeaderElection(cluster, topics, timeInterval)
+      temp = parse(schedule.toString).extract[Map[String, Int]]
+      for ((cluster, timeInterval) <- temp) {
+        schedulePreferredLeaderElection(cluster, Set(), timeInterval)
       }
     }
   }
@@ -967,7 +975,7 @@ class KafkaManager(akkaConfig: Config) extends Logging {
   // Value of each key is a 2-tuple where
   //// first element is the scheduler's cancellable object - required for cancelling the schedule
   //// second element is the time interval for scheduling (in minutes) - required for storing in ZK
-  var pleCancellable : Map[String, (Option[Cancellable], (Set[String], Int))] = Map.empty
+  var pleCancellable : Map[String, (Option[Cancellable], Int)] = Map.empty
   initialiseSchedulePreferredLeaderElection()
 
 }
