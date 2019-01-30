@@ -383,7 +383,7 @@ class KafkaManager(akkaConfig: Config) extends Logging {
 
     pleCancellable += (clusterName ->
       (
-          Some(
+        Some(
           system.scheduler.schedule(0 seconds, Duration(timeIntervalMinutes, TimeUnit.MINUTES)) {
             runPreferredLeaderElectionWithAllTopics(clusterName)
           }
