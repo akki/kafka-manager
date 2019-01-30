@@ -24,7 +24,7 @@
                     <div>
                     @if(showForm == "Schedule") {
                         @b3.form(routes.PreferredReplicaElection.handleScheduleRunElection(cluster)) {
-                            <input type="number" name="timePeriod" class="form-control col-md-8" placeholder="Time for scheduling (in min)" required />
+                            <input type="number" min="1" name="timePeriod" class="form-control col-md-8" placeholder="Time for scheduling (in min)" required />
                             <fieldset>
                             @b3.submit('class -> "btn btn-primary"){ Schedule Preferred Replica Election }
                             </fieldset>
