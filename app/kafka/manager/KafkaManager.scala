@@ -361,7 +361,7 @@ class KafkaManager(akkaConfig: Config) extends Logging {
     }
   }
 
-  def runPreferredLeaderElectionWithAllTopics(clusterName: String) = {
+  private def runPreferredLeaderElectionWithAllTopics(clusterName: String) = {
     implicit val ec = apiExecutionContext
 
     system.actorSelection(kafkaManagerActor).ask(KMClusterQueryRequest(clusterName, KSGetTopics)).map { t =>
@@ -369,7 +369,7 @@ class KafkaManager(akkaConfig: Config) extends Logging {
     }
   }
 
-  def updateSchedulePreferredLeaderElection(clusterName: String): Unit = {
+  private def updateSchedulePreferredLeaderElection(clusterName: String): Unit = {
     system.actorSelection(kafkaManagerActor).ask(KMClusterCommandRequest(
       clusterName,
       CMSchedulePreferredLeaderElection(
