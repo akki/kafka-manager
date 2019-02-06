@@ -364,8 +364,12 @@ class KafkaManager(akkaConfig: Config) extends Logging {
   private def runPreferredLeaderElectionWithAllTopics(clusterName: String) = {
     implicit val ec = apiExecutionContext
 
-    system.actorSelection(kafkaManagerActor).ask(KMClusterQueryRequest(clusterName, KSGetTopics)).map { t =>
-      runPreferredLeaderElection(clusterName, List(t.toString).toSet)
+    getTopicList(clusterName).flatMap { errorOrTopicList =>
+      errorOrTopicList.fold({ e =>
+        Future.successful(-\/(e))
+      }, { topicList =>
+        runPreferredLeaderElection(clusterName, topicList.list.toSet)
+      })
     }
   }
 
