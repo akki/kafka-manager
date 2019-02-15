@@ -66,8 +66,10 @@ GET    /api/status/:c/:t/unavailablePartitions              controllers.api.Kafk
 GET    /api/status/:cluster/:consumer/:topic/:consumerType/topicSummary   controllers.api.KafkaStateCheck.topicSummaryAction(cluster:String, consumer:String, topic:String, consumerType:String)
 GET    /api/status/:cluster/:consumer/:consumerType/groupSummary          controllers.api.KafkaStateCheck.groupSummaryAction(cluster:String, consumer:String, consumerType:String)
 GET    /api/status/:cluster/consumersSummary                controllers.api.KafkaStateCheck.consumersSummaryAction(cluster:String)
-POST   /api/clusters/:c/leader/schedule                         controllers.PreferredReplicaElection.handleScheduleRunElectionAPI(c:String)
-POST   /api/clusters/:c/leader/schedule/cancel                  controllers.PreferredReplicaElection.cancelScheduleRunElectionAPI(c:String)
+
+GET    /api/clusters/:c/leader/isScheduled                  controllers.PreferredReplicaElection.handleIsScheduledAPI(c:String)
+POST   /api/clusters/:c/leader/schedule                     controllers.PreferredReplicaElection.handleScheduleRunElectionAPI(c:String)
+POST   /api/clusters/:c/leader/schedule/cancel              controllers.PreferredReplicaElection.cancelScheduleRunElectionAPI(c:String)
 
 # Versioned Assets
 GET    /vassets/*file                                       controllers.Assets.versioned(path="/public", file: Asset)

@@ -5,21 +5,21 @@
 
 package controllers
 
-import play.api.libs.json.Json
 import features.{ApplicationFeatures, KMPreferredReplicaElectionFeature}
 import kafka.manager.ApiError
 import kafka.manager.features.ClusterFeatures
+import models.FollowLink
+import models.form.{PreferredReplicaElectionOperation, RunElection, UnknownPREO}
 import models.navigation.Menus
-import models.{navigation, FollowLink}
-import models.form.{UnknownPREO, RunElection, PreferredReplicaElectionOperation}
 import play.api.data.Form
 import play.api.data.Forms._
-import play.api.data.validation.{Valid, Invalid, Constraint}
+import play.api.data.validation.{Constraint, Invalid, Valid}
 import play.api.i18n.{I18nSupport, MessagesApi}
+import play.api.libs.json.Json
 import play.api.mvc._
+import scalaz.-\/
 
 import scala.concurrent.Future
-import scalaz.-\/
 
 /**
  * @author hiral
@@ -96,6 +96,10 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
       })
     }
     status.map(s => Ok(Json.obj("message" -> s.toString)).withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
+  }
+
+  def handleIsScheduledAPI(cluster: String): Action[AnyContent] = Action.async { implicit request =>
+    Future(Ok(Json.obj("isScheduled" -> kafkaManager.pleCancellable.contains(cluster))))
   }
 
   def cancelScheduleRunElectionAPI(c: String) = Action.async { implicit request =>
