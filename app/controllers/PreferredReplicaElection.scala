@@ -5,7 +5,7 @@
 
 package controllers
 
-import features.{ApplicationFeatures, KMPreferredReplicaElectionFeature}
+import features.{ApplicationFeatures, KMPreferredReplicaElectionFeature, KMScheduleLeaderElectionFeature}
 import kafka.manager.ApiError
 import kafka.manager.features.ClusterFeatures
 import models.FollowLink
@@ -99,8 +99,11 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
   }
 
   def handleScheduledIntervalAPI(cluster: String): Action[AnyContent] = Action.async { implicit request =>
-    Future(Ok(Json.obj("scheduledInterval" -> kafkaManager.pleCancellable.get(cluster).map(_._2).getOrElse(0)))
-      .withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
+    featureGate(KMScheduleLeaderElectionFeature) {
+      val interval = kafkaManager.pleCancellable.get(cluster).map(_._2).getOrElse(0)
+      Future(Ok(Json.obj("scheduledInterval" -> interval))
+        .withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
+    }
   }
 
   def cancelScheduleRunElectionAPI(c: String) = Action.async { implicit request =>
