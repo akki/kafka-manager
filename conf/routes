@@ -67,7 +67,7 @@ GET    /api/status/:cluster/:consumer/:topic/:consumerType/topicSummary   contro
 GET    /api/status/:cluster/:consumer/:consumerType/groupSummary          controllers.api.KafkaStateCheck.groupSummaryAction(cluster:String, consumer:String, consumerType:String)
 GET    /api/status/:cluster/consumersSummary                controllers.api.KafkaStateCheck.consumersSummaryAction(cluster:String)
 
-GET    /api/clusters/:c/leader/isScheduled                  controllers.PreferredReplicaElection.handleIsScheduledAPI(c:String)
+GET    /api/clusters/:c/leader/scheduledInterval            controllers.PreferredReplicaElection.handleScheduledIntervalAPI(c:String)
 POST   /api/clusters/:c/leader/schedule                     controllers.PreferredReplicaElection.handleScheduleRunElectionAPI(c:String)
 POST   /api/clusters/:c/leader/schedule/cancel              controllers.PreferredReplicaElection.cancelScheduleRunElectionAPI(c:String)
 

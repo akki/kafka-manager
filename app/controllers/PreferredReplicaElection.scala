@@ -98,8 +98,9 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
     status.map(s => Ok(Json.obj("message" -> s.toString)).withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
   }
 
-  def handleIsScheduledAPI(cluster: String): Action[AnyContent] = Action.async { implicit request =>
-    Future(Ok(Json.obj("isScheduled" -> kafkaManager.pleCancellable.contains(cluster))))
+  def handleScheduledIntervalAPI(cluster: String): Action[AnyContent] = Action.async { implicit request =>
+    Future(Ok(Json.obj("scheduledInterval" -> kafkaManager.pleCancellable.get(cluster).map(_._2).getOrElse(0)))
+      .withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
   }
 
   def cancelScheduleRunElectionAPI(c: String) = Action.async { implicit request =>
