@@ -8,14 +8,14 @@ package controllers
 import features.{ApplicationFeatures, KMPreferredReplicaElectionFeature, KMScheduleLeaderElectionFeature}
 import kafka.manager.ApiError
 import kafka.manager.features.ClusterFeatures
-import models.FollowLink
 import models.form.{PreferredReplicaElectionOperation, RunElection, UnknownPREO}
+import models.FollowLink
 import models.navigation.Menus
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.validation.{Constraint, Invalid, Valid}
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.mvc._
 import scalaz.-\/
 
@@ -87,28 +87,12 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
     }
   }
 
-  def handleScheduleRunElectionAPI(c: String) = Action.async { implicit request =>
-    val status = kafkaManager.getTopicList(c).flatMap { errorOrTopicList =>
-      errorOrTopicList.fold({ e =>
-        Future.successful(-\/(e))
-      }, { topicList =>
-        kafkaManager.schedulePreferredLeaderElection(c, topicList.list.toSet, 5)
-      })
-    }
-    status.map(s => Ok(Json.obj("message" -> s.toString)).withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
-  }
-
   def handleScheduledIntervalAPI(cluster: String): Action[AnyContent] = Action.async { implicit request =>
     featureGate(KMScheduleLeaderElectionFeature) {
       val interval = kafkaManager.pleCancellable.get(cluster).map(_._2).getOrElse(0)
       Future(Ok(Json.obj("scheduledInterval" -> interval))
         .withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
     }
-  }
-
-  def cancelScheduleRunElectionAPI(c: String) = Action.async { implicit request =>
-    val status = kafkaManager.cancelPreferredLeaderElection(c)
-    status.map(s => Ok(Json.obj("message" -> s.toString)).withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
   }
 
   def scheduleRunElection(c: String) = Action.async { implicit request =>
@@ -159,6 +143,46 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
     }
     kafkaManager.getTopicList(c).map { errorOrStatus =>
       Ok(views.html.scheduleLeaderElection(c,errorOrStatus,status_string, 0)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
+    }
+  }
+
+  def handleScheduleRunElectionAPI(c: String) = Action.async { implicit request =>
+    // ToDo: Refactor out common part from handleScheduleRunElection
+    featureGate(KMScheduleLeaderElectionFeature) {
+
+      var timePeriod = request.body.asInstanceOf[AnyContentAsJson].json.asInstanceOf[JsObject].values.toList(0).toString().toInt
+      var status_string: String = ""
+      if(!kafkaManager.pleCancellable.contains(c)){
+        kafkaManager.getTopicList(c).flatMap { errorOrTopicList =>
+          errorOrTopicList.fold({ e =>
+            Future.successful(-\/(e))
+          }, { topicList =>
+            kafkaManager.schedulePreferredLeaderElection(c, topicList.list.toSet, timePeriod)
+          })
+        }
+        status_string = "Scheduler started"
+      }
+      else{
+        status_string = "Scheduler already scheduled"
+        timePeriod = kafkaManager.pleCancellable(c)._2
+      }
+      Future(
+        Ok(Json.obj(
+          "scheduledInterval" -> timePeriod, "message" -> status_string
+        )).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
+      )
+    }
+  }
+
+  def cancelScheduleRunElectionAPI(c: String) = Action.async { implicit request =>
+    // ToDo: Refactor out common part from cancelScheduleRunElection
+    featureGate(KMScheduleLeaderElectionFeature) {
+      val status_string: String = if(kafkaManager.pleCancellable.contains(c)){
+        kafkaManager.cancelPreferredLeaderElection(c)
+        "Scheduler stopped"
+      }
+      else "Scheduler already not running"
+      Future(Ok(Json.obj("scheduledInterval" -> 0, "message" -> status_string)).withHeaders("X-Frame-Options" -> "SAMEORIGIN"))
     }
   }
 }
