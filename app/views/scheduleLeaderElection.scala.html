@@ -4,7 +4,7 @@
 *@
 @import scalaz.{\/}
 @import b3.vertical.fieldConstructor
-@(cluster:String, errorOrStatus: kafka.manager.ApiError \/ kafka.manager.model.ActorModel.TopicList, status: String, showForm: String
+@(cluster:String, errorOrStatus: kafka.manager.ApiError \/ kafka.manager.model.ActorModel.TopicList, status: String, timePeriod: Int
 )(implicit af: features.ApplicationFeatures, messages: play.api.i18n.Messages, menus: models.navigation.Menus)
 
 @theMenu = {
@@ -22,7 +22,7 @@
             <div class="col-md-6">
                 @features.app(features.KMScheduleLeaderElectionFeature) {
                     <div>
-                    @if(showForm == "Schedule") {
+                    @if(timePeriod == 0) {
                         @b3.form(routes.PreferredReplicaElection.handleScheduleRunElection(cluster)) {
                             <input type="number" min="1" name="timePeriod" class="form-control col-md-8" placeholder="Time for scheduling (in min)" required />
                             <fieldset>
@@ -44,7 +44,11 @@
 
         <div class="row col-md-12">
             <div class="alert alert-warning" role="alert">
-            @status
+            @if(timePeriod == 0) {
+                @status
+            } else {
+                @status (every @timePeriod minutes)
+            }
             </div>
         </div>
     </div>

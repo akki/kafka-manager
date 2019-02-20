@@ -113,23 +113,22 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
 
   def scheduleRunElection(c: String) = Action.async { implicit request =>
     var status_string: String = ""
-    var showForm: String = ""
+    var timePeriod: Int = 0
     if(kafkaManager.pleCancellable.contains(c)){
       status_string = "Scheduler is running"
-      showForm = "Cancel"
+      timePeriod = kafkaManager.pleCancellable(c)._2
     }
     else {
       status_string = "Scheduler is not running"
-      showForm = "Schedule"
     }
     kafkaManager.getTopicList(c).map { errorOrStatus =>
-      Ok(views.html.scheduleLeaderElection(c,errorOrStatus, status_string, showForm)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
+      Ok(views.html.scheduleLeaderElection(c,errorOrStatus, status_string, timePeriod)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
     }
   }
 
   def handleScheduleRunElection(c: String) = Action.async { implicit request =>
     var status_string: String = ""
-    val timeIntervalMinutes = request.body.asFormUrlEncoded.get("timePeriod")(0).toInt
+    var timeIntervalMinutes = request.body.asFormUrlEncoded.get("timePeriod")(0).toInt
     if(!kafkaManager.pleCancellable.contains(c)){
       kafkaManager.getTopicList(c).flatMap { errorOrTopicList =>
         errorOrTopicList.fold({ e =>
@@ -142,9 +141,10 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
     }
     else{
       status_string = "Scheduler already scheduled"
+      timeIntervalMinutes = kafkaManager.pleCancellable(c)._2
     }
     kafkaManager.getTopicList(c).map { errorOrStatus =>
-      Ok(views.html.scheduleLeaderElection(c, errorOrStatus, status_string, "Cancel")).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
+      Ok(views.html.scheduleLeaderElection(c, errorOrStatus, status_string, timeIntervalMinutes)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
     }
   }
 
@@ -158,7 +158,7 @@ class PreferredReplicaElection (val messagesApi: MessagesApi, val kafkaManagerCo
       status_string = "Scheduler already not running"
     }
     kafkaManager.getTopicList(c).map { errorOrStatus =>
-      Ok(views.html.scheduleLeaderElection(c,errorOrStatus,status_string, "Schedule")).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
+      Ok(views.html.scheduleLeaderElection(c,errorOrStatus,status_string, 0)).withHeaders("X-Frame-Options" -> "SAMEORIGIN")
     }
   }
 }
